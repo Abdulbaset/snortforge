@@ -9,3 +9,6 @@ venv/
 *.db
 data/library.db
 .streamlit/secrets.toml
+
+# Local environment file (compose credentials)
+.env

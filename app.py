@@ -1,7 +1,14 @@
-"""SnortForge — Streamlit entrypoint. Page config, banner, and tab routing only.
+"""SnortForge — Streamlit entrypoint. Page config, auth gate, and tab routing.
 
 All real work lives in ui/ (views) and engine/ + storage/ (logic). This module
 imports nothing from engine internals beyond the documented view functions.
+
+Authentication: SnortForge has no auth of its own, so when an OIDC provider is
+configured (an ``[auth]`` block in Streamlit secrets) this entrypoint gates the
+whole app behind ``st.login()``. When no provider is configured — local dev,
+Docker, and the test harness — the gate is skipped and the app is open, exactly
+as before. This keeps the tool usable locally while letting a public deployment
+require sign-in.
 """
 
 from __future__ import annotations
@@ -36,7 +43,45 @@ if _db_url:
     os.environ.setdefault("SNORTFORGE_DB_URL", str(_db_url))
 
 
+def _auth_configured() -> bool:
+    """True when an OIDC provider is configured via an [auth] secrets block."""
+    try:
+        return "auth" in st.secrets
+    except Exception:
+        return False
+
+
+def _user_ns():
+    """Return Streamlit's user namespace across versions (st.user / experimental)."""
+    return getattr(st, "user", None) or getattr(st, "experimental_user", None)
+
+
+def _is_logged_in() -> bool:
+    """Safe login check; returns False if auth isn't wired up."""
+    user = _user_ns()
+    try:
+        return bool(user.is_logged_in)
+    except Exception:
+        return False
+
+
+def _render_login_screen() -> None:
+    """Branded sign-in gate shown when auth is required but the user is not in."""
+    render_global_styles()
+    render_snortforge_logo()
+    st.info(
+        "SnortForge is a restricted internal tool. Please sign in to continue."
+    )
+    st.button("🔐 Log in", type="primary", on_click=st.login)
+    render_footer()
+
+
 def main() -> None:
+    # Gate the app behind sign-in only when an auth provider is configured.
+    if _auth_configured() and not _is_logged_in():
+        _render_login_screen()
+        return
+
     render_global_styles()
     render_snortforge_logo()
     st.markdown(
@@ -44,6 +89,14 @@ def main() -> None:
         f"margin-top:-10px;'>{TAGLINE}</p>",
         unsafe_allow_html=True,
     )
+
+    # When signed in, offer a logout control and show who is signed in.
+    if _auth_configured() and _is_logged_in():
+        user = _user_ns()
+        who = getattr(user, "email", None) or getattr(user, "name", None) or "user"
+        with st.sidebar:
+            st.caption(f"Signed in as {who}")
+            st.button("Log out", on_click=st.logout)
 
     tab_build, tab_convert, tab_pcap, tab_lib = st.tabs(
         ["🔨 Rule Builder", "🔁 Snort 2→3 Converter", "📦 PCAP Synth", "📚 Team Library"]

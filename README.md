@@ -181,6 +181,33 @@ does not use the `Dockerfile`; it installs from `requirements.txt` plus
 > Want stronger auth later? Add Streamlit's native OIDC login (`st.login`) or put
 > Cloudflare Access in front. Both are out of scope for v1.
 
+### Require sign-in (recommended, especially for a public repo)
+
+A public repo means a Community Cloud app deployed from it is **publicly
+viewable**, and SnortForge has no auth of its own. To gate it, the app supports
+Streamlit's native OpenID Connect login (`st.login`). When an `[auth]` block is
+present in secrets, `app.py` requires sign-in before anything renders; without
+it, the app stays open (local/dev/tests).
+
+1. Register an OAuth client with an OIDC provider (Google, Microsoft Entra,
+   Auth0, Okta, …). Set the redirect URI to
+   `https://YOUR-APP.streamlit.app/oauth2callback`.
+2. Add an `[auth]` block to your Streamlit secrets (see
+   `.streamlit/secrets.toml.example`):
+   ```toml
+   [auth]
+   redirect_uri = "https://YOUR-APP.streamlit.app/oauth2callback"
+   cookie_secret = "GENERATE_A_LONG_RANDOM_STRING"
+   client_id = "YOUR_OAUTH_CLIENT_ID"
+   client_secret = "YOUR_OAUTH_CLIENT_SECRET"
+   server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+   ```
+   `Authlib` (in `requirements.txt`) is required for this to work.
+3. Redeploy. Users now hit a sign-in screen; only authenticated users reach the
+   app. Restrict *which* accounts further at the provider (e.g. limit to your
+   Google Workspace domain), since `st.login` authenticates but does not itself
+   maintain an allowlist.
+
 ### Alternative: Railway / Render (Docker + managed Postgres)
 
 If you prefer running the actual Docker image with a managed database, Railway or
@@ -203,10 +230,12 @@ No UI code changes are needed — the same schema and repository API serve both.
 
 ### Exercise the Postgres backend with Docker Compose
 
-`docker-compose.yml` brings up the app plus a PostgreSQL container and wires
-`SNORTFORGE_DB_URL` to it automatically — no env var to set by hand:
+`docker-compose.yml` brings up the app plus a PostgreSQL container. Credentials
+come from a local `.env` file (not committed), and `SNORTFORGE_DB_URL` is
+assembled from them automatically. Copy the example once, then run:
 
 ```bash
+cp .env.example .env        # Windows: copy .env.example .env
 docker compose up --build
 ```
 
