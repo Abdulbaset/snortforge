@@ -1,0 +1,5 @@
+streamlit==1.42.0
+scapy==2.6.1
+pydantic==2.10.6
+regex==2024.11.6
+psycopg[binary]==3.2.3

@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+
+# Local data and secrets — never commit
+*.db
+data/library.db
+.streamlit/secrets.toml

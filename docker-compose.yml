@@ -1,0 +1,44 @@
+# SnortForge — app + PostgreSQL.
+#
+# Runs the Streamlit app against a Postgres backend with zero hand-configuration:
+# the SNORTFORGE_DB_URL is wired to the `db` service below, so the repository
+# layer selects PostgreSQL automatically (see storage/repository.get_repository).
+#
+# Usage:
+#   docker compose up --build
+#   open http://localhost:8501
+#
+# To go back to the default SQLite backend, just run the plain image instead
+# (docker run -p 8501:8501 snortforge) — no env var, no Postgres.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: snortforge
+      POSTGRES_PASSWORD: snortforge
+      POSTGRES_DB: snortforge
+    volumes:
+      - snortforge_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U snortforge -d snortforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Exposed for inspection with psql/pgAdmin from the host; optional.
+    ports:
+      - "5432:5432"
+
+  app:
+    build: .
+    environment:
+      # Hostname "db" resolves to the Postgres service on the compose network.
+      SNORTFORGE_DB_URL: "postgresql://snortforge:snortforge@db:5432/snortforge"
+    ports:
+      - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  snortforge_pgdata:
