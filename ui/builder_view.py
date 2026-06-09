@@ -114,7 +114,7 @@ def render_builder() -> None:
     remove_idx = None
     for i, row in enumerate(rows):
         with st.container(border=True):
-            rc1, rc2, rc3, rc4, rc5 = st.columns([4, 3, 2, 2, 1])
+            rc1, rc2, rc3, rc4, rc5 = st.columns([3.4, 2.6, 2.3, 2.7, 0.9])
             with rc1:
                 row["content"] = st.text_input(
                     f"Content #{i + 1}", value=row["content"], key=f"content_{i}"

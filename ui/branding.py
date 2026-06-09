@@ -40,11 +40,11 @@ def render_snortforge_logo() -> None:
              border-radius:50%; bottom:5px; left:22px;"></div>
       </div>
       <div>
-        <h1 style="font-family:'Courier New', monospace; color:{TEXT_PRIMARY}; margin:0;
+        <h1 style="font-family:'JetBrains Mono','Courier New',monospace; color:{TEXT_PRIMARY}; margin:0;
             font-size:28px; font-weight:800; letter-spacing:1px;">
           SNORT<span style="color:{ACCENT_CYAN};">FORGE</span>
         </h1>
-        <p style="font-family:sans-serif; color:{TEXT_MUTED}; margin:2px 0 0 0;
+        <p style="font-family:'Inter',sans-serif; color:{TEXT_MUTED}; margin:2px 0 0 0;
            font-size:12px; text-transform:uppercase; letter-spacing:2px;">
           {SUB_LABEL}
         </p>
@@ -58,7 +58,7 @@ def render_footer() -> None:
     """Render the developer credit footer shown at the bottom of the app."""
     footer_html = f"""
     <hr style="border:none; border-top:1px solid #2A3340; margin-top:30px;">
-    <p style="text-align:center; color:{TEXT_MUTED}; font-family:sans-serif;
+    <p style="text-align:center; color:{TEXT_MUTED}; font-family:'Inter',sans-serif;
        font-size:12px; letter-spacing:1px; margin-top:8px;">
       SnortForge &middot; Developed by <span style="color:{ACCENT_CYAN};
       font-weight:600;">{DEVELOPER}</span>
@@ -75,13 +75,11 @@ BORDER_DIM = "#2A3340"   # hairline borders
 def render_global_styles(mode: str = "dark") -> None:
     """Inject the consolidated global CSS theme (single <style> block).
 
-    Theme-aware: ``mode`` is "dark" (default) or "light". All surfaces are driven
-    from CSS variables so switching modes only swaps the token block below; the
-    accent palette is shared. Combines the original SnortForge refinements with
-    the UI-improvement brief (constrained width, centered accent label bars on
-    field labels, solid bordered dropdown, accent primary buttons, red-hover
-    remove control, hidden chrome). Version-sensitive selectors have fallbacks;
-    if a rule ever stops matching, the app still works.
+    Theme-aware (``mode`` = "dark" | "light") and font-aware: UI text uses Inter,
+    techy headings/labels/code use JetBrains Mono (both loaded from Google Fonts).
+    All surfaces are driven from CSS variables so switching modes only swaps the
+    token block. Version-sensitive selectors have fallbacks; if a rule ever stops
+    matching, the app still works.
     """
     if mode == "light":
         tokens = (
@@ -97,7 +95,11 @@ def render_global_styles(mode: str = "dark") -> None:
         )
 
     rules = """
-      /* Canvas + base text colour. */
+      /* Base font + canvas + text colour. */
+      html, body, .stApp, .stApp p, .stApp li, .stApp span, .stApp div,
+      input, textarea, button, select{
+        font-family:var(--sf-font-ui);
+      }
       .stApp{
         background:
           radial-gradient(1200px 500px at 50% -200px, rgba(56,189,248,0.08), transparent 70%),
@@ -107,10 +109,10 @@ def render_global_styles(mode: str = "dark") -> None:
       .stApp p, .stApp li, .stApp label, .stMarkdown,
       [data-testid="stMarkdownContainer"]{ color:var(--sf-text); }
 
-      /* Headings in the monospace identity font. */
+      /* Headings: JetBrains Mono for the techy identity. */
       h1,h2,h3,.stMarkdown h1,.stMarkdown h2,.stMarkdown h3{
-        font-family:'Courier New',monospace !important;
-        letter-spacing:0.5px;color:var(--sf-text);
+        font-family:var(--sf-font-mono) !important;
+        letter-spacing:0.3px;color:var(--sf-text);font-weight:700;
       }
 
       /* Constrain + center content so fields are not edge-to-edge on big screens. */
@@ -123,7 +125,7 @@ def render_global_styles(mode: str = "dark") -> None:
       }
       .stTabs [data-baseweb="tab"]{
         border-radius:8px;padding:8px 16px;color:var(--sf-text-muted);
-        font-family:'Courier New',monospace;font-weight:600;
+        font-family:var(--sf-font-mono);font-weight:600;
       }
       .stTabs [aria-selected="true"]{
         background:rgba(56,189,248,0.14)!important;color:var(--sf-accent)!important;
@@ -136,21 +138,25 @@ def render_global_styles(mode: str = "dark") -> None:
       [data-baseweb="select"] > div{
         background-color:var(--sf-bg-card)!important;
         border:1px solid var(--sf-border)!important;border-radius:8px!important;
-        color:var(--sf-text)!important;
+        color:var(--sf-text)!important;font-family:var(--sf-font-ui)!important;
       }
       .stTextInput input:focus,.stNumberInput input:focus,.stTextArea textarea:focus{
         border-color:var(--sf-accent)!important;box-shadow:0 0 0 2px rgba(56,189,248,0.25)!important;
       }
 
-      /* Field labels: centered, uppercase, with an accent bar.
-         label[...] not div[...]: text/select/number/textarea labels are <label>
-         elements; checkbox/toggle labels are <div>, so this keeps the bar on
-         field labels and leaves toggle labels (nocase/fast_pattern) plain. */
+      /* Field labels (text/select/number/textarea = <label>): centered accent bar. */
       label[data-testid="stWidgetLabel"] p{
-        text-align:center;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+        text-align:center;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+        font-family:var(--sf-font-mono);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
         color:var(--sf-accent)!important;background:rgba(56,189,248,0.10);
         border-bottom:2px solid var(--sf-accent);border-radius:6px 6px 0 0;
         padding:6px 10px;margin-bottom:4px;width:100%;
+      }
+
+      /* Toggle / checkbox labels (= <div>): plain Inter, no wrap, no bar. */
+      div[data-testid="stWidgetLabel"] p{
+        font-family:var(--sf-font-ui)!important;font-size:13px!important;font-weight:500;
+        white-space:nowrap;text-transform:none;letter-spacing:normal;color:var(--sf-text)!important;
       }
 
       /* Open dropdown menu: solid, bordered, visible (version-sensitive + fallback). */
@@ -159,7 +165,8 @@ def render_global_styles(mode: str = "dark") -> None:
         background-color:var(--sf-bg-menu)!important;border:1px solid var(--sf-accent)!important;
         border-radius:8px!important;box-shadow:0 8px 24px rgba(0,0,0,0.35)!important;padding:4px!important;
       }
-      li[role="option"]{color:var(--sf-text)!important;border-radius:6px!important;margin:2px 0!important;}
+      li[role="option"]{color:var(--sf-text)!important;border-radius:6px!important;margin:2px 0!important;
+        font-family:var(--sf-font-ui)!important;}
       li[role="option"]:hover,li[role="option"][aria-selected="true"]{
         background-color:rgba(56,189,248,0.18)!important;color:var(--sf-accent-strong)!important;
       }
@@ -170,7 +177,7 @@ def render_global_styles(mode: str = "dark") -> None:
       /* Primary actions: accent fill (not red). Secondary: ghost accent. */
       .stButton>button[kind="primary"],.stDownloadButton>button[kind="primary"]{
         background:var(--sf-accent)!important;border:1px solid var(--sf-accent)!important;
-        color:#04121f!important;font-weight:700;border-radius:8px;font-family:'Courier New',monospace;
+        color:#04121f!important;font-weight:700;border-radius:8px;font-family:var(--sf-font-mono);
       }
       .stButton>button[kind="primary"]:hover,.stDownloadButton>button[kind="primary"]:hover{
         background:var(--sf-accent-strong)!important;border-color:var(--sf-accent-strong)!important;
@@ -178,7 +185,7 @@ def render_global_styles(mode: str = "dark") -> None:
       }
       .stButton>button[kind="secondary"],.stDownloadButton>button[kind="secondary"]{
         border:1px solid var(--sf-accent)!important;color:var(--sf-accent)!important;
-        background:transparent!important;border-radius:8px;font-family:'Courier New',monospace;font-weight:700;
+        background:transparent!important;border-radius:8px;font-family:var(--sf-font-mono);font-weight:600;
       }
       .stButton>button[kind="secondary"]:hover{background:rgba(56,189,248,0.12)!important;}
 
@@ -194,13 +201,27 @@ def render_global_styles(mode: str = "dark") -> None:
       }
       div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:10px!important;}
 
-      /* Code blocks: accent left rule to match the banner. */
+      /* Code blocks: JetBrains Mono + accent left rule. */
+      [data-testid="stCode"],.stCode,[data-testid="stCode"] code,pre,code{
+        font-family:var(--sf-font-mono)!important;
+      }
       [data-testid="stCode"],.stCode{border-left:3px solid var(--sf-accent);border-radius:8px;}
 
       /* Hide leftover Streamlit chrome (our own footer is plain markdown and stays). */
       #MainMenu{visibility:hidden;}
       footer{visibility:hidden;}
     """
-    css = "<style>:root{--sf-accent:#38bdf8;--sf-accent-strong:#0ea5e9;" \
-          "--sf-success:#34d399;--sf-danger:#f87171;" + tokens + "}" + rules + "</style>"
+    fonts = (
+        "@import url('https://fonts.googleapis.com/css2?"
+        "family=Inter:wght@400;500;600;700&"
+        "family=JetBrains+Mono:wght@400;500;600;700&display=swap');"
+    )
+    root = (
+        ":root{--sf-accent:#38bdf8;--sf-accent-strong:#0ea5e9;"
+        "--sf-success:#34d399;--sf-danger:#f87171;"
+        "--sf-font-ui:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;"
+        "--sf-font-mono:'JetBrains Mono','Courier New',monospace;"
+        + tokens + "}"
+    )
+    css = "<style>" + fonts + root + rules + "</style>"
     st.markdown(css, unsafe_allow_html=True)
