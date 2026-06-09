@@ -211,12 +211,21 @@ def render_global_styles(mode: str = "dark") -> None:
       }
       [data-testid="stCode"],.stCode{border-left:3px solid var(--sf-accent);border-radius:8px;}
 
-      /* Sidebar: themed surface + readable text in both modes. */
+      /* Sidebar: a slim, always-dark control rail (identical in light + dark). */
       section[data-testid="stSidebar"]{
-        background:var(--sf-bg-card)!important;border-right:1px solid var(--sf-border-soft);
+        background:#0a1320!important;border-right:1px solid #1e2f47!important;
+        width:210px!important;min-width:210px!important;max-width:210px!important;
       }
-      section[data-testid="stSidebar"] *{ color:var(--sf-text); }
-      section[data-testid="stSidebar"] h3{ font-family:var(--sf-font-mono);color:var(--sf-accent); }
+      section[data-testid="stSidebar"] *{ color:#e5edf5!important; }
+      section[data-testid="stSidebar"] h3{
+        font-family:var(--sf-font-mono);color:#38bdf8!important;font-size:15px;margin-bottom:6px;
+      }
+      /* Unify the sidebar header / collapse strip so no stray bar shows. */
+      [data-testid="stSidebarHeader"],[data-testid="stSidebarCollapseButton"],
+      [data-testid="stSidebarUserContent"]{ background:#0a1320!important; }
+      section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] svg{ color:#9fb3c8!important; }
+      /* Trim the sidebar's default top padding so it reads slim. */
+      section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"]{ padding-top:0.75rem; }
 
       /* Hide leftover Streamlit chrome (our own footer is plain markdown and stays). */
       #MainMenu{visibility:hidden;}
