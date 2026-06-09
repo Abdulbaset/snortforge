@@ -217,6 +217,13 @@ def render_global_styles(mode: str = "dark") -> None:
         width:210px!important;min-width:210px!important;max-width:210px!important;
       }
       section[data-testid="stSidebar"] *{ color:#e5edf5!important; }
+      /* More specific than the global toggle-label rule so the sidebar
+         label stays light on the dark rail in BOTH modes (otherwise the
+         light-mode var(--sf-text) navy makes "Light mode" invisible). */
+      section[data-testid="stSidebar"] div[data-testid="stWidgetLabel"] p,
+      section[data-testid="stSidebar"] label[data-testid="stWidgetLabel"] p{
+        color:#e5edf5!important;
+      }
       section[data-testid="stSidebar"] h3{
         font-family:var(--sf-font-mono);color:#38bdf8!important;font-size:15px;margin-bottom:6px;
       }
