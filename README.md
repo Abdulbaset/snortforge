@@ -47,6 +47,9 @@ SnortForge never claims engine-level validation it does not perform.
   downloadable as `.pcap` for Wireshark inspection.
 - **Team library** — save/search/load rules. SQLite by default, PostgreSQL in
   production via one connection-string change.
+- **Light / dark theme** — a sidebar toggle switches the whole UI; **light is the
+  default**. Typography uses Inter for UI text and JetBrains Mono for headings,
+  labels, and code.
 
 ---
 
@@ -54,6 +57,9 @@ SnortForge never claims engine-level validation it does not perform.
 
 The app opens on four tabs: **Rule Builder**, **Snort 2 → 3 Converter**,
 **PCAP Synth**, and **Team Library**.
+
+Use the **⚙ Display** control in the left sidebar to switch between light and
+dark mode (the app opens in light mode by default).
 
 ### Rule Builder — build a Snort 3 rule
 
