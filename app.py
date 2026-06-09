@@ -96,7 +96,6 @@ def main() -> None:
             "Light mode",
             value=(st.session_state.get("theme", "dark") == "light"),
             key="theme_toggle",
-            help="Switch between light and dark mode",
         )
         if _auth_configured() and _is_logged_in():
             user = _user_ns()
@@ -129,10 +128,4 @@ def main() -> None:
     with tab_pcap:
         render_pcap()
     with tab_lib:
-        render_library()
-
-    render_footer()
-
-
-if __name__ == "__main__":
-    main()
+        render_library
