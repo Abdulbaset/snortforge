@@ -227,6 +227,13 @@ def render_global_styles(mode: str = "dark") -> None:
       /* Trim the sidebar's default top padding so it reads slim. */
       section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"]{ padding-top:0.75rem; }
 
+      /* Keep the top header bar dark in BOTH modes. Streamlit's header is
+         transparent and its controls (Share, star, the sidebar open/close arrow)
+         are light-coloured; over the light page they vanish, so we give the
+         header a solid dark background and keep its icons light. */
+      header[data-testid="stHeader"]{ background:#0a1320 !important; }
+      header[data-testid="stHeader"] *{ color:#e5edf5 !important; fill:#e5edf5 !important; }
+
       /* Hide leftover Streamlit chrome (our own footer is plain markdown and stays). */
       #MainMenu{visibility:hidden;}
       footer{visibility:hidden;}
