@@ -93,7 +93,12 @@ def main() -> None:
         )
     st.session_state["theme"] = "light" if light else "dark"
 
-    render_global_styles(st.session_state["theme"])
+    # Defensive: if a stale/older branding module (no mode parameter) is ever
+    # loaded by the host, fall back to the no-arg call so the app still renders.
+    try:
+        render_global_styles(st.session_state["theme"])
+    except TypeError:
+        render_global_styles()
     render_snortforge_logo()
     st.markdown(
         f"<p style='letter-spacing:3px;color:#00D2FF;font-family:monospace;"
