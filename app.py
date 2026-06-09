@@ -82,7 +82,18 @@ def main() -> None:
         _render_login_screen()
         return
 
-    render_global_styles()
+    # Light/dark mode toggle (top-right). Default dark.
+    spacer, toggle_col = st.columns([6, 1])
+    with toggle_col:
+        light = st.toggle(
+            "☀ Light",
+            value=(st.session_state.get("theme", "dark") == "light"),
+            key="theme_toggle",
+            help="Switch between light and dark mode",
+        )
+    st.session_state["theme"] = "light" if light else "dark"
+
+    render_global_styles(st.session_state["theme"])
     render_snortforge_logo()
     st.markdown(
         f"<p style='letter-spacing:3px;color:#00D2FF;font-family:monospace;"

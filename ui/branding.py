@@ -72,55 +72,54 @@ PANEL_DARK = "#1F2630"   # cards / inputs sit slightly above the canvas
 BORDER_DIM = "#2A3340"   # hairline borders
 
 
-def render_global_styles() -> None:
+def render_global_styles(mode: str = "dark") -> None:
     """Inject the consolidated global CSS theme (single <style> block).
 
-    Combines the original SnortForge refinements with the UI-improvement brief:
-    constrained content width, centered accent label bars, a solid bordered open
-    dropdown, lifted caption contrast, an accent (not red) primary-button palette,
-    a red-hover remove-row affordance, and hidden Streamlit chrome. Colours are
-    literal hex from the design tokens so there is no f-string brace escaping.
-    Version-sensitive selectors (stSelectboxVirtualDropdown) have a popover
-    fallback; if a rule ever stops matching, the app still works.
+    Theme-aware: ``mode`` is "dark" (default) or "light". All surfaces are driven
+    from CSS variables so switching modes only swaps the token block below; the
+    accent palette is shared. Combines the original SnortForge refinements with
+    the UI-improvement brief (constrained width, centered accent label bars on
+    field labels, solid bordered dropdown, accent primary buttons, red-hover
+    remove control, hidden chrome). Version-sensitive selectors have fallbacks;
+    if a rule ever stops matching, the app still works.
     """
-    css = """
-    <style>
-      :root{
-        --sf-accent:#38bdf8;
-        --sf-accent-strong:#0ea5e9;
-        --sf-success:#34d399;
-        --sf-danger:#f87171;
-        --sf-bg-app:#0b1524;
-        --sf-bg-card:#0f1b2d;
-        --sf-bg-menu:#0a1320;
-        --sf-text:#e5edf5;
-        --sf-text-muted:#9fb3c8;
-      }
+    if mode == "light":
+        tokens = (
+            "--sf-bg-app:#eef3f9;--sf-bg-card:#ffffff;--sf-bg-menu:#ffffff;"
+            "--sf-text:#0b1524;--sf-text-muted:#51657a;"
+            "--sf-border:#cfdbe8;--sf-border-soft:#dfe8f2;"
+        )
+    else:
+        tokens = (
+            "--sf-bg-app:#0b1524;--sf-bg-card:#0f1b2d;--sf-bg-menu:#0a1320;"
+            "--sf-text:#e5edf5;--sf-text-muted:#9fb3c8;"
+            "--sf-border:#24364f;--sf-border-soft:#1e2f47;"
+        )
 
-      /* Canvas: subtle accent glow over the deep-navy base. */
+    rules = """
+      /* Canvas + base text colour. */
       .stApp{
         background:
           radial-gradient(1200px 500px at 50% -200px, rgba(56,189,248,0.08), transparent 70%),
           var(--sf-bg-app);
+        color:var(--sf-text);
       }
+      .stApp p, .stApp li, .stApp label, .stMarkdown,
+      [data-testid="stMarkdownContainer"]{ color:var(--sf-text); }
 
       /* Headings in the monospace identity font. */
       h1,h2,h3,.stMarkdown h1,.stMarkdown h2,.stMarkdown h3{
         font-family:'Courier New',monospace !important;
-        letter-spacing:0.5px;
+        letter-spacing:0.5px;color:var(--sf-text);
       }
 
       /* Constrain + center content so fields are not edge-to-edge on big screens. */
-      .block-container{
-        max-width:1180px;
-        margin-left:auto;margin-right:auto;
-        padding-top:2rem;
-      }
+      .block-container{ max-width:1180px;margin-left:auto;margin-right:auto;padding-top:2rem; }
 
       /* Tabs: pill bar with a glowing accent active state. */
       .stTabs [data-baseweb="tab-list"]{
         gap:6px;background:var(--sf-bg-card);padding:6px;border-radius:12px;
-        border:1px solid #1e2f47;
+        border:1px solid var(--sf-border-soft);
       }
       .stTabs [data-baseweb="tab"]{
         border-radius:8px;padding:8px 16px;color:var(--sf-text-muted);
@@ -132,21 +131,24 @@ def render_global_styles() -> None:
       }
       .stTabs [data-baseweb="tab-highlight"]{background:var(--sf-accent);}
 
-      /* Inputs: card background, accent focus ring. */
+      /* Inputs: card background, dark/light text, accent focus ring. */
       .stTextInput input,.stNumberInput input,.stTextArea textarea,
       [data-baseweb="select"] > div{
         background-color:var(--sf-bg-card)!important;
-        border:1px solid #24364f!important;border-radius:8px!important;
+        border:1px solid var(--sf-border)!important;border-radius:8px!important;
+        color:var(--sf-text)!important;
       }
       .stTextInput input:focus,.stNumberInput input:focus,.stTextArea textarea:focus{
-        border-color:var(--sf-accent)!important;
-        box-shadow:0 0 0 2px rgba(56,189,248,0.25)!important;
+        border-color:var(--sf-accent)!important;box-shadow:0 0 0 2px rgba(56,189,248,0.25)!important;
       }
 
-      /* Field labels: centered, uppercase, with an accent bar. */
-      div[data-testid="stWidgetLabel"] p{
+      /* Field labels: centered, uppercase, with an accent bar.
+         label[...] not div[...]: text/select/number/textarea labels are <label>
+         elements; checkbox/toggle labels are <div>, so this keeps the bar on
+         field labels and leaves toggle labels (nocase/fast_pattern) plain. */
+      label[data-testid="stWidgetLabel"] p{
         text-align:center;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
-        color:var(--sf-accent);background:rgba(56,189,248,0.08);
+        color:var(--sf-accent)!important;background:rgba(56,189,248,0.10);
         border-bottom:2px solid var(--sf-accent);border-radius:6px 6px 0 0;
         padding:6px 10px;margin-bottom:4px;width:100%;
       }
@@ -155,11 +157,11 @@ def render_global_styles() -> None:
       ul[data-testid="stSelectboxVirtualDropdown"],
       div[data-baseweb="popover"] ul[role="listbox"]{
         background-color:var(--sf-bg-menu)!important;border:1px solid var(--sf-accent)!important;
-        border-radius:8px!important;box-shadow:0 8px 24px rgba(0,0,0,0.6)!important;padding:4px!important;
+        border-radius:8px!important;box-shadow:0 8px 24px rgba(0,0,0,0.35)!important;padding:4px!important;
       }
       li[role="option"]{color:var(--sf-text)!important;border-radius:6px!important;margin:2px 0!important;}
       li[role="option"]:hover,li[role="option"][aria-selected="true"]{
-        background-color:rgba(56,189,248,0.18)!important;color:#ffffff!important;
+        background-color:rgba(56,189,248,0.18)!important;color:var(--sf-accent-strong)!important;
       }
 
       /* Lift low-contrast helper / caption text. */
@@ -168,8 +170,7 @@ def render_global_styles() -> None:
       /* Primary actions: accent fill (not red). Secondary: ghost accent. */
       .stButton>button[kind="primary"],.stDownloadButton>button[kind="primary"]{
         background:var(--sf-accent)!important;border:1px solid var(--sf-accent)!important;
-        color:#04121f!important;font-weight:700;border-radius:8px;
-        font-family:'Courier New',monospace;
+        color:#04121f!important;font-weight:700;border-radius:8px;font-family:'Courier New',monospace;
       }
       .stButton>button[kind="primary"]:hover,.stDownloadButton>button[kind="primary"]:hover{
         background:var(--sf-accent-strong)!important;border-color:var(--sf-accent-strong)!important;
@@ -177,14 +178,11 @@ def render_global_styles() -> None:
       }
       .stButton>button[kind="secondary"],.stDownloadButton>button[kind="secondary"]{
         border:1px solid var(--sf-accent)!important;color:var(--sf-accent)!important;
-        background:transparent!important;border-radius:8px;
-        font-family:'Courier New',monospace;font-weight:700;
+        background:transparent!important;border-radius:8px;font-family:'Courier New',monospace;font-weight:700;
       }
-      .stButton>button[kind="secondary"]:hover{
-        background:rgba(56,189,248,0.12)!important;color:#ffffff!important;
-      }
+      .stButton>button[kind="secondary"]:hover{background:rgba(56,189,248,0.12)!important;}
 
-      /* Remove-row control (st.button key="rm_*"): red on hover - the one destructive control. */
+      /* Remove-row control (st.button key="rm_*"): red on hover. */
       [class*="st-key-rm_"] button:hover{
         border-color:var(--sf-danger)!important;color:var(--sf-danger)!important;
         background:rgba(248,113,113,0.12)!important;box-shadow:0 0 10px rgba(248,113,113,0.3)!important;
@@ -192,7 +190,7 @@ def render_global_styles() -> None:
 
       /* Cards / expanders. */
       [data-testid="stExpander"]{
-        border:1px solid #1e2f47!important;border-radius:10px!important;background:rgba(15,27,45,0.6);
+        border:1px solid var(--sf-border-soft)!important;border-radius:10px!important;background:var(--sf-bg-card);
       }
       div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:10px!important;}
 
@@ -202,6 +200,7 @@ def render_global_styles() -> None:
       /* Hide leftover Streamlit chrome (our own footer is plain markdown and stays). */
       #MainMenu{visibility:hidden;}
       footer{visibility:hidden;}
-    </style>
     """
+    css = "<style>:root{--sf-accent:#38bdf8;--sf-accent-strong:#0ea5e9;" \
+          "--sf-success:#34d399;--sf-danger:#f87171;" + tokens + "}" + rules + "</style>"
     st.markdown(css, unsafe_allow_html=True)

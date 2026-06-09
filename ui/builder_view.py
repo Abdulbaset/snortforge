@@ -30,11 +30,8 @@ BUFFER_NONE = "(none)"
 # buffer-first ordering is unchanged. Adds http_host (and http_stat_code) on top
 # of the engine's known buffers, http_* grouped first then dns_query.
 _EXTRA_BUILDER_BUFFERS = ["http_host", "http_stat_code"]
-BUILDER_STICKY_BUFFERS = [
-    b for b in STICKY_BUFFERS if b != "dns_query"
-] + [b for b in _EXTRA_BUILDER_BUFFERS if b not in STICKY_BUFFERS] + (
-    ["dns_query"] if "dns_query" in STICKY_BUFFERS else []
-)
+# Alphabetical so the dropdown is easy to scan. "(none)" is prepended at use.
+BUILDER_STICKY_BUFFERS = sorted(set(STICKY_BUFFERS) | set(_EXTRA_BUILDER_BUFFERS))
 
 
 def _init_state() -> None:
