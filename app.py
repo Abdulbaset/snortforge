@@ -94,7 +94,7 @@ def main() -> None:
         st.markdown("### ⚙ Display")
         light = st.toggle(
             "Light mode",
-            value=(st.session_state.get("theme", "dark") == "light"),
+            value=(st.session_state.get("theme", "light") == "light"),
             key="theme_toggle",
         )
         if _auth_configured() and _is_logged_in():
