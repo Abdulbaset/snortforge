@@ -1,4 +1,4 @@
-"""Phase 3 UI: Snort 2 -> Snort 3 converter tab."""
+"""Phase 3 UI: Snort 2 -> Snort 3 converter tab (two-pane)."""
 
 from __future__ import annotations
 
@@ -21,17 +21,30 @@ def render_converter() -> None:
         "buffers on their own line, once per change. Output is well-formed, not "
         "engine-validated."
     )
-    src = st.text_area("Paste a Snort 2 rule", value=_EXAMPLE, height=160)
-    if st.button("Convert"):
-        result = convert_snort2_to_snort3(src)
-        if result.startswith("Error:"):
+
+    left, right = st.columns(2)
+
+    with left:
+        src = st.text_area(
+            "Paste a Snort 2 rule", value=_EXAMPLE, height=320, key="conv_src"
+        )
+        if st.button("Convert", type="primary"):
+            st.session_state["conv_result"] = convert_snort2_to_snort3(src)
+
+    with right:
+        result = st.session_state.get("conv_result")
+        if result is None:
+            st.info("Converted Snort 3 output will appear here.")
+        elif result.startswith("Error:"):
             st.error(result)
         else:
-            st.success("Converted (well-formed).")
+            st.success("Converted (well-formed, not engine-validated).")
             st.code(result, language="text")
+            st.caption("Use the copy icon in the code block's top-right to copy.")
             st.download_button(
                 "⬇ Download .rules",
                 data=result + "\n",
                 file_name="converted.rules",
                 mime="text/plain",
+                type="primary",
             )

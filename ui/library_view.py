@@ -1,4 +1,4 @@
-"""Phase 3 UI: team library tab (search, list, load into builder)."""
+"""Phase 3 UI: team library tab (search, sort, list, load into builder)."""
 
 from __future__ import annotations
 
@@ -6,20 +6,32 @@ import streamlit as st
 
 from storage.repository import get_repository
 
+_SORT_RECENT = "Most recent"
+_SORT_SID = "SID"
+
 
 def render_library() -> None:
     st.subheader("Team Library")
     st.caption("Saved rules in the shared library (SQLite by default).")
 
     repo = get_repository()
+    all_rules = repo.list_all()
 
-    c1, c2, c3 = st.columns(3)
+    # B6: when the library is empty, show only the empty-state message and hide
+    # the search/sort controls. They appear once at least one rule exists.
+    if not all_rules:
+        st.info("No rules saved yet. Build one and save it from the Rule Builder tab.")
+        return
+
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
         sid_q = st.text_input("Search by SID", value="")
     with c2:
         title_q = st.text_input("Search by title", value="")
     with c3:
         tag_q = st.text_input("Search by MITRE tag", value="")
+    with c4:
+        sort_by = st.selectbox("Sort by", [_SORT_RECENT, _SORT_SID], index=0)
 
     sid_val = None
     if sid_q.strip():
@@ -35,10 +47,15 @@ def render_library() -> None:
             mitre_tag=tag_q.strip() or None,
         )
     else:
-        results = repo.list_all()
+        results = list(all_rules)
+
+    if sort_by == _SORT_SID:
+        results.sort(key=lambda r: r.sid)
+    else:
+        results.sort(key=lambda r: r.updated_at, reverse=True)
 
     if not results:
-        st.info("No rules saved yet. Build one and save it from the Rule Builder tab.")
+        st.info("No rules match your search.")
         return
 
     for rule in results:
@@ -54,7 +71,7 @@ def render_library() -> None:
                 st.write(rule.notes)
             cc1, cc2 = st.columns(2)
             with cc1:
-                if st.button("Load into builder", key=f"load_{rule.id}"):
+                if st.button("Load into builder", key=f"load_{rule.id}", type="secondary"):
                     st.session_state["loaded_rule"] = rule.raw_rule_text
                     st.success("Loaded. See the Rule Builder tab (raw text in session).")
             with cc2:
@@ -64,4 +81,5 @@ def render_library() -> None:
                     file_name=f"snortforge_{rule.sid}.rules",
                     mime="text/plain",
                     key=f"dl_{rule.id}",
+                    type="primary",
                 )

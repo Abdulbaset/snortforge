@@ -24,6 +24,18 @@ PROTOCOLS = ["tcp", "udp", "icmp", "ip", "http", "ftp", "tls", "ssh"]
 BLOCKING_ACTIONS = {"drop", "reject"}
 BUFFER_NONE = "(none)"
 
+# UI-level sticky-buffer choices for the builder dropdown. Defined here (not in
+# the engine) so the engine stays untouched per the improvement brief's
+# guardrails. The engine emits whatever buffer string it is handed and the
+# buffer-first ordering is unchanged. Adds http_host (and http_stat_code) on top
+# of the engine's known buffers, http_* grouped first then dns_query.
+_EXTRA_BUILDER_BUFFERS = ["http_host", "http_stat_code"]
+BUILDER_STICKY_BUFFERS = [
+    b for b in STICKY_BUFFERS if b != "dns_query"
+] + [b for b in _EXTRA_BUILDER_BUFFERS if b not in STICKY_BUFFERS] + (
+    ["dns_query"] if "dns_query" in STICKY_BUFFERS else []
+)
+
 
 def _init_state() -> None:
     if "content_rows" not in st.session_state:
@@ -49,6 +61,11 @@ def _inline(result, field_label: str) -> None:
         st.error(f"{field_label}: {result.message}")
     else:
         st.info(f"{field_label}: {result.message}")
+
+
+def _blocking(result) -> bool:
+    """A check is blocking only when it is a hard failure (not a warning)."""
+    return (not result.ok) and (not result.is_warning)
 
 
 def render_builder() -> None:
@@ -85,10 +102,12 @@ def render_builder() -> None:
     with c7:
         dst_port = st.text_input("Destination port", value="443")
 
-    _inline(validate_ip(src_ip), "Source IP")
-    _inline(validate_ip(dst_ip), "Destination IP")
-    _inline(validate_port(src_port), "Source port")
-    _inline(validate_port(dst_port), "Destination port")
+    ip_src_res, ip_dst_res = validate_ip(src_ip), validate_ip(dst_ip)
+    port_src_res, port_dst_res = validate_port(src_port), validate_port(dst_port)
+    _inline(ip_src_res, "Source IP")
+    _inline(ip_dst_res, "Destination IP")
+    _inline(port_src_res, "Source port")
+    _inline(port_dst_res, "Destination port")
 
     msg = st.text_input("Message (msg)", value="SnortForge custom rule")
 
@@ -97,38 +116,45 @@ def render_builder() -> None:
     rows = st.session_state.content_rows
     remove_idx = None
     for i, row in enumerate(rows):
-        card = st.container(border=True)
-        with card:
+        with st.container(border=True):
             rc1, rc2, rc3, rc4, rc5 = st.columns([4, 3, 2, 2, 1])
-        with rc1:
-            row["content"] = st.text_input(
-                f"Content #{i + 1}", value=row["content"], key=f"content_{i}"
-            )
-        with rc2:
-            buffers = [BUFFER_NONE] + STICKY_BUFFERS
-            cur = row.get("buffer", BUFFER_NONE)
-            row["buffer"] = st.selectbox(
-                "Sticky buffer",
-                buffers,
-                index=buffers.index(cur) if cur in buffers else 0,
-                key=f"buffer_{i}",
-            )
-        with rc3:
-            row["nocase"] = st.checkbox("nocase", value=row["nocase"], key=f"nocase_{i}")
-        with rc4:
-            row["fast_pattern"] = st.checkbox(
-                "fast_pattern", value=row["fast_pattern"], key=f"fp_{i}"
-            )
-        with rc5:
-            st.write("")
-            if st.button("✖", key=f"rm_{i}", help="Remove this row"):
-                remove_idx = i
+            with rc1:
+                row["content"] = st.text_input(
+                    f"Content #{i + 1}", value=row["content"], key=f"content_{i}"
+                )
+            with rc2:
+                cur = row.get("buffer", BUFFER_NONE)
+                options = [BUFFER_NONE] + BUILDER_STICKY_BUFFERS
+                row["buffer"] = st.selectbox(
+                    "Sticky buffer",
+                    options,
+                    index=options.index(cur) if cur in options else 0,
+                    key=f"buffer_{i}",
+                )
+            with rc3:
+                row["nocase"] = st.toggle(
+                    "nocase", value=row["nocase"], key=f"nocase_{i}"
+                )
+            with rc4:
+                row["fast_pattern"] = st.toggle(
+                    "fast_pattern", value=row["fast_pattern"], key=f"fp_{i}"
+                )
+            with rc5:
+                st.markdown("<div style='height:1.9rem'></div>", unsafe_allow_html=True)
+                if st.button(
+                    "✖",
+                    key=f"rm_{i}",
+                    type="secondary",
+                    help="Remove content match",
+                    use_container_width=True,
+                ):
+                    remove_idx = i
 
     if remove_idx is not None and len(rows) > 1:
         rows.pop(remove_idx)
         st.rerun()
 
-    if st.button("➕ Add Content Match"):
+    if st.button("➕ Add Content Match", type="secondary"):
         rows.append(
             {"content": "", "nocase": False, "fast_pattern": False, "buffer": BUFFER_NONE}
         )
@@ -184,48 +210,61 @@ def render_builder() -> None:
         "rev": int(rev),
     }
 
-    hard_errors = [
-        not validate_ip(src_ip).ok,
-        not validate_ip(dst_ip).ok,
-        not validate_port(src_port).ok,
-        not validate_port(dst_port).ok,
-        bool(pcre) and not pcre_result.ok,
-    ]
-    can_generate = not any(hard_errors)
+    # Collect blocking issues (hard failures only; warnings do not block).
+    issues = []
+    if _blocking(ip_src_res):
+        issues.append(f"Source IP — {ip_src_res.message}")
+    if _blocking(ip_dst_res):
+        issues.append(f"Destination IP — {ip_dst_res.message}")
+    if _blocking(port_src_res):
+        issues.append(f"Source port — {port_src_res.message}")
+    if _blocking(port_dst_res):
+        issues.append(f"Destination port — {port_dst_res.message}")
+    if pcre and _blocking(pcre_result):
+        issues.append(f"PCRE — {pcre_result.message}")
+    can_generate = not issues
 
     st.markdown("---")
     st.markdown("### Generated Snort 3 rule")
+
+    # B2: single consolidated verdict line.
     if not can_generate:
-        st.error("Fix the errors above before generating the rule.")
+        st.error(
+            "**Not well-formed — fix these blocking issues:**\n\n"
+            + "\n".join(f"- {m}" for m in issues)
+        )
         return
 
     rule_text = build_rule(rule_dict)
     st.code(rule_text, language="text")
+    st.success(
+        "✓ Well-formed — passes SnortForge pre-flight checks "
+        "(syntax shape only, not validated by the Snort engine)."
+    )
     st.caption("Use the copy icon in the code block's top-right to copy.")
 
-    dc1, dc2 = st.columns(2)
-    with dc1:
-        st.download_button(
-            "⬇ Download .rules",
-            data=rule_text + "\n",
-            file_name=f"snortforge_{int(sid)}.rules",
-            mime="text/plain",
-        )
-    with dc2:
-        st.session_state["current_rule_text"] = rule_text
-        st.session_state["current_rule_meta"] = {
-            "sid": int(sid),
-            "rev": int(rev),
-            "title": msg,
-            "mitre_tags": mitre_ids,
-        }
+    st.session_state["current_rule_text"] = rule_text
+    st.session_state["current_rule_meta"] = {
+        "sid": int(sid),
+        "rev": int(rev),
+        "title": msg,
+        "mitre_tags": mitre_ids,
+    }
+
+    st.download_button(
+        "⬇ Download .rules",
+        data=rule_text + "\n",
+        file_name=f"snortforge_{int(sid)}.rules",
+        mime="text/plain",
+        type="primary",
+    )
 
     # --- Save to team library ------------------------------------------------
     with st.expander("💾 Save to team library"):
         title = st.text_input("Title", value=msg, key="save_title")
         author = st.text_input("Author", value="Abdulbaset Al-Saidy", key="save_author")
         notes = st.text_area("Notes", value="", key="save_notes")
-        if st.button("Save rule"):
+        if st.button("Save rule", type="primary"):
             repo = get_repository()
             now = datetime.now(timezone.utc)
             model = SavedRuleModel(

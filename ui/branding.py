@@ -73,105 +73,135 @@ BORDER_DIM = "#2A3340"   # hairline borders
 
 
 def render_global_styles() -> None:
-    """Inject a global CSS theme that lifts the app above Streamlit defaults.
+    """Inject the consolidated global CSS theme (single <style> block).
 
-    All colours come from the design tokens (section 6). Selectors use stable
-    ``data-testid`` hooks where possible so the theme survives minor Streamlit
-    version changes; if a selector ever stops matching, the app still works and
-    simply falls back to the base dark theme.
+    Combines the original SnortForge refinements with the UI-improvement brief:
+    constrained content width, centered accent label bars, a solid bordered open
+    dropdown, lifted caption contrast, an accent (not red) primary-button palette,
+    a red-hover remove-row affordance, and hidden Streamlit chrome. Colours are
+    literal hex from the design tokens so there is no f-string brace escaping.
+    Version-sensitive selectors (stSelectboxVirtualDropdown) have a popover
+    fallback; if a rule ever stops matching, the app still works.
     """
-    css = f"""
+    css = """
     <style>
-      /* Canvas: subtle radial glow from the top, forge-dark base. */
-      .stApp {{
+      :root{
+        --sf-accent:#38bdf8;
+        --sf-accent-strong:#0ea5e9;
+        --sf-success:#34d399;
+        --sf-danger:#f87171;
+        --sf-bg-app:#0b1524;
+        --sf-bg-card:#0f1b2d;
+        --sf-bg-menu:#0a1320;
+        --sf-text:#e5edf5;
+        --sf-text-muted:#9fb3c8;
+      }
+
+      /* Canvas: subtle accent glow over the deep-navy base. */
+      .stApp{
         background:
-          radial-gradient(1200px 500px at 50% -200px,
-                          rgba(0,210,255,0.07), transparent 70%),
-          {CANVAS_DARK};
-      }}
+          radial-gradient(1200px 500px at 50% -200px, rgba(56,189,248,0.08), transparent 70%),
+          var(--sf-bg-app);
+      }
 
       /* Headings in the monospace identity font. */
-      h1, h2, h3, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {{
-        font-family: 'Courier New', monospace !important;
-        letter-spacing: 0.5px;
-      }}
+      h1,h2,h3,.stMarkdown h1,.stMarkdown h2,.stMarkdown h3{
+        font-family:'Courier New',monospace !important;
+        letter-spacing:0.5px;
+      }
 
-      /* Tabs: pill bar with a glowing cyan active state. */
-      .stTabs [data-baseweb="tab-list"] {{
-        gap: 6px;
-        background: {PANEL_DARK};
-        padding: 6px;
-        border-radius: 12px;
-        border: 1px solid {BORDER_DIM};
-      }}
-      .stTabs [data-baseweb="tab"] {{
-        border-radius: 8px;
-        padding: 8px 16px;
-        color: {TEXT_MUTED};
-        font-family: 'Courier New', monospace;
-        font-weight: 600;
-      }}
-      .stTabs [aria-selected="true"] {{
-        background: rgba(0,210,255,0.12) !important;
-        color: {ACCENT_CYAN} !important;
-        box-shadow: inset 0 0 0 1px rgba(0,210,255,0.5),
-                    0 0 12px rgba(0,210,255,0.25);
-      }}
-      .stTabs [data-baseweb="tab-highlight"] {{ background: {ACCENT_CYAN}; }}
+      /* Constrain + center content so fields are not edge-to-edge on big screens. */
+      .block-container{
+        max-width:1180px;
+        margin-left:auto;margin-right:auto;
+        padding-top:2rem;
+      }
 
-      /* Inputs: panel background, cyan focus glow. */
-      .stTextInput input, .stNumberInput input, .stTextArea textarea,
-      [data-baseweb="select"] > div {{
-        background-color: {PANEL_DARK} !important;
-        border: 1px solid {BORDER_DIM} !important;
-        border-radius: 8px !important;
-      }}
-      .stTextInput input:focus, .stNumberInput input:focus,
-      .stTextArea textarea:focus {{
-        border-color: {ACCENT_CYAN} !important;
-        box-shadow: 0 0 0 2px rgba(0,210,255,0.25) !important;
-      }}
+      /* Tabs: pill bar with a glowing accent active state. */
+      .stTabs [data-baseweb="tab-list"]{
+        gap:6px;background:var(--sf-bg-card);padding:6px;border-radius:12px;
+        border:1px solid #1e2f47;
+      }
+      .stTabs [data-baseweb="tab"]{
+        border-radius:8px;padding:8px 16px;color:var(--sf-text-muted);
+        font-family:'Courier New',monospace;font-weight:600;
+      }
+      .stTabs [aria-selected="true"]{
+        background:rgba(56,189,248,0.14)!important;color:var(--sf-accent)!important;
+        box-shadow:inset 0 0 0 1px rgba(56,189,248,0.5),0 0 12px rgba(56,189,248,0.22);
+      }
+      .stTabs [data-baseweb="tab-highlight"]{background:var(--sf-accent);}
 
-      /* Buttons: cyan outline that fills + glows on hover. */
-      .stButton > button, .stDownloadButton > button {{
-        background: transparent;
-        color: {ACCENT_CYAN};
-        border: 1px solid {ACCENT_CYAN};
-        border-radius: 8px;
-        font-family: 'Courier New', monospace;
-        font-weight: 700;
-        transition: all 0.15s ease-in-out;
-      }}
-      .stButton > button:hover, .stDownloadButton > button:hover {{
-        background: rgba(0,210,255,0.15);
-        box-shadow: 0 0 14px rgba(0,210,255,0.35);
-        color: {TEXT_PRIMARY};
-      }}
-      .stDownloadButton > button {{
-        border-color: {FORGE_AMBER};
-        color: {FORGE_AMBER};
-      }}
-      .stDownloadButton > button:hover {{
-        background: rgba(255,87,34,0.15);
-        box-shadow: 0 0 14px rgba(255,87,34,0.35);
-        color: {TEXT_PRIMARY};
-      }}
+      /* Inputs: card background, accent focus ring. */
+      .stTextInput input,.stNumberInput input,.stTextArea textarea,
+      [data-baseweb="select"] > div{
+        background-color:var(--sf-bg-card)!important;
+        border:1px solid #24364f!important;border-radius:8px!important;
+      }
+      .stTextInput input:focus,.stNumberInput input:focus,.stTextArea textarea:focus{
+        border-color:var(--sf-accent)!important;
+        box-shadow:0 0 0 2px rgba(56,189,248,0.25)!important;
+      }
 
-      /* Bordered containers (content-row cards) and expanders. */
-      [data-testid="stExpander"], div[data-testid="stVerticalBlockBorderWrapper"] {{
-        border: 1px solid {BORDER_DIM} !important;
-        border-radius: 10px !important;
-        background: rgba(31,38,48,0.5);
-      }}
+      /* Field labels: centered, uppercase, with an accent bar. */
+      div[data-testid="stWidgetLabel"] p{
+        text-align:center;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;
+        color:var(--sf-accent);background:rgba(56,189,248,0.08);
+        border-bottom:2px solid var(--sf-accent);border-radius:6px 6px 0 0;
+        padding:6px 10px;margin-bottom:4px;width:100%;
+      }
 
-      /* Code blocks: cyan left rule to match the banner. */
-      [data-testid="stCode"], .stCode {{
-        border-left: 3px solid {ACCENT_CYAN};
-        border-radius: 8px;
-      }}
+      /* Open dropdown menu: solid, bordered, visible (version-sensitive + fallback). */
+      ul[data-testid="stSelectboxVirtualDropdown"],
+      div[data-baseweb="popover"] ul[role="listbox"]{
+        background-color:var(--sf-bg-menu)!important;border:1px solid var(--sf-accent)!important;
+        border-radius:8px!important;box-shadow:0 8px 24px rgba(0,0,0,0.6)!important;padding:4px!important;
+      }
+      li[role="option"]{color:var(--sf-text)!important;border-radius:6px!important;margin:2px 0!important;}
+      li[role="option"]:hover,li[role="option"][aria-selected="true"]{
+        background-color:rgba(56,189,248,0.18)!important;color:#ffffff!important;
+      }
 
-      /* Slightly tighten the top padding now the banner carries the header. */
-      .block-container {{ padding-top: 2.2rem; }}
+      /* Lift low-contrast helper / caption text. */
+      div[data-testid="stCaptionContainer"],.stCaption,small{color:var(--sf-text-muted)!important;}
+
+      /* Primary actions: accent fill (not red). Secondary: ghost accent. */
+      .stButton>button[kind="primary"],.stDownloadButton>button[kind="primary"]{
+        background:var(--sf-accent)!important;border:1px solid var(--sf-accent)!important;
+        color:#04121f!important;font-weight:700;border-radius:8px;
+        font-family:'Courier New',monospace;
+      }
+      .stButton>button[kind="primary"]:hover,.stDownloadButton>button[kind="primary"]:hover{
+        background:var(--sf-accent-strong)!important;border-color:var(--sf-accent-strong)!important;
+        box-shadow:0 0 14px rgba(56,189,248,0.4)!important;color:#04121f!important;
+      }
+      .stButton>button[kind="secondary"],.stDownloadButton>button[kind="secondary"]{
+        border:1px solid var(--sf-accent)!important;color:var(--sf-accent)!important;
+        background:transparent!important;border-radius:8px;
+        font-family:'Courier New',monospace;font-weight:700;
+      }
+      .stButton>button[kind="secondary"]:hover{
+        background:rgba(56,189,248,0.12)!important;color:#ffffff!important;
+      }
+
+      /* Remove-row control (st.button key="rm_*"): red on hover - the one destructive control. */
+      [class*="st-key-rm_"] button:hover{
+        border-color:var(--sf-danger)!important;color:var(--sf-danger)!important;
+        background:rgba(248,113,113,0.12)!important;box-shadow:0 0 10px rgba(248,113,113,0.3)!important;
+      }
+
+      /* Cards / expanders. */
+      [data-testid="stExpander"]{
+        border:1px solid #1e2f47!important;border-radius:10px!important;background:rgba(15,27,45,0.6);
+      }
+      div[data-testid="stVerticalBlockBorderWrapper"]{border-radius:10px!important;}
+
+      /* Code blocks: accent left rule to match the banner. */
+      [data-testid="stCode"],.stCode{border-left:3px solid var(--sf-accent);border-radius:8px;}
+
+      /* Hide leftover Streamlit chrome (our own footer is plain markdown and stays). */
+      #MainMenu{visibility:hidden;}
+      footer{visibility:hidden;}
     </style>
     """
     st.markdown(css, unsafe_allow_html=True)
