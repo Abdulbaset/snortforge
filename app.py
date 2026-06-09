@@ -128,4 +128,10 @@ def main() -> None:
     with tab_pcap:
         render_pcap()
     with tab_lib:
-        render_library
+        render_library()
+
+    render_footer()
+
+
+if __name__ == "__main__":
+    main()
