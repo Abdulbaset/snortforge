@@ -82,11 +82,12 @@ def main() -> None:
         _render_login_screen()
         return
 
-    # Light/dark mode toggle (top-right). Default dark.
-    spacer, toggle_col = st.columns([6, 1])
+    # Light/dark mode toggle (top-right). Default dark. Generous column width so
+    # the label never clips against the container edge.
+    spacer, toggle_col = st.columns([4, 1.6])
     with toggle_col:
         light = st.toggle(
-            "☀ Light",
+            "Light mode",
             value=(st.session_state.get("theme", "dark") == "light"),
             key="theme_toggle",
             help="Switch between light and dark mode",

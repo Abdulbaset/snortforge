@@ -85,13 +85,13 @@ def render_global_styles(mode: str = "dark") -> None:
         tokens = (
             "--sf-bg-app:#eef3f9;--sf-bg-card:#ffffff;--sf-bg-menu:#ffffff;"
             "--sf-text:#0b1524;--sf-text-muted:#51657a;"
-            "--sf-border:#cfdbe8;--sf-border-soft:#dfe8f2;"
+            "--sf-border:#cfdbe8;--sf-border-soft:#dfe8f2;--sf-label:#0e7490;"
         )
     else:
         tokens = (
             "--sf-bg-app:#0b1524;--sf-bg-card:#0f1b2d;--sf-bg-menu:#0a1320;"
             "--sf-text:#e5edf5;--sf-text-muted:#9fb3c8;"
-            "--sf-border:#24364f;--sf-border-soft:#1e2f47;"
+            "--sf-border:#24364f;--sf-border-soft:#1e2f47;--sf-label:#38bdf8;"
         )
 
     rules = """
@@ -148,7 +148,7 @@ def render_global_styles(mode: str = "dark") -> None:
       label[data-testid="stWidgetLabel"] p{
         text-align:center;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
         font-family:var(--sf-font-mono);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-        color:var(--sf-accent)!important;background:rgba(56,189,248,0.10);
+        color:var(--sf-label)!important;background:rgba(56,189,248,0.12);
         border-bottom:2px solid var(--sf-accent);border-radius:6px 6px 0 0;
         padding:6px 10px;margin-bottom:4px;width:100%;
       }
@@ -189,7 +189,11 @@ def render_global_styles(mode: str = "dark") -> None:
       }
       .stButton>button[kind="secondary"]:hover{background:rgba(56,189,248,0.12)!important;}
 
-      /* Remove-row control (st.button key="rm_*"): red on hover. */
+      /* Remove-row control (st.button key="rm_*"): visible in both modes. */
+      [class*="st-key-rm_"] button{
+        background:transparent!important;border:1px solid var(--sf-border)!important;
+        color:var(--sf-text)!important;font-size:16px;
+      }
       [class*="st-key-rm_"] button:hover{
         border-color:var(--sf-danger)!important;color:var(--sf-danger)!important;
         background:rgba(248,113,113,0.12)!important;box-shadow:0 0 10px rgba(248,113,113,0.3)!important;
