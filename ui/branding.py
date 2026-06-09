@@ -211,6 +211,13 @@ def render_global_styles(mode: str = "dark") -> None:
       }
       [data-testid="stCode"],.stCode{border-left:3px solid var(--sf-accent);border-radius:8px;}
 
+      /* Sidebar: themed surface + readable text in both modes. */
+      section[data-testid="stSidebar"]{
+        background:var(--sf-bg-card)!important;border-right:1px solid var(--sf-border-soft);
+      }
+      section[data-testid="stSidebar"] *{ color:var(--sf-text); }
+      section[data-testid="stSidebar"] h3{ font-family:var(--sf-font-mono);color:var(--sf-accent); }
+
       /* Hide leftover Streamlit chrome (our own footer is plain markdown and stays). */
       #MainMenu{visibility:hidden;}
       footer{visibility:hidden;}

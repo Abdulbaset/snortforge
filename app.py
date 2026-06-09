@@ -28,7 +28,12 @@ from ui.converter_view import render_converter
 from ui.library_view import render_library
 from ui.pcap_view import render_pcap
 
-st.set_page_config(page_title="SnortForge", page_icon="🛡", layout="wide")
+st.set_page_config(
+    page_title="SnortForge",
+    page_icon="🛡",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 
 # On Streamlit Community Cloud the database URL is supplied via App Secrets, not
@@ -82,16 +87,23 @@ def main() -> None:
         _render_login_screen()
         return
 
-    # Light/dark mode toggle (top-right). Default dark. Generous column width so
-    # the label never clips against the container edge.
-    spacer, toggle_col = st.columns([4, 1.6])
-    with toggle_col:
+    # Sidebar holds app controls (theme + session) so they never collide with
+    # Streamlit's own top toolbar. Sidebar is expanded by default (see
+    # set_page_config) so the theme toggle is immediately visible.
+    with st.sidebar:
+        st.markdown("### ⚙ Display")
         light = st.toggle(
             "Light mode",
             value=(st.session_state.get("theme", "dark") == "light"),
             key="theme_toggle",
             help="Switch between light and dark mode",
         )
+        if _auth_configured() and _is_logged_in():
+            user = _user_ns()
+            who = getattr(user, "email", None) or getattr(user, "name", None) or "user"
+            st.divider()
+            st.caption(f"Signed in as {who}")
+            st.button("Log out", on_click=st.logout)
     st.session_state["theme"] = "light" if light else "dark"
 
     # Defensive: if a stale/older branding module (no mode parameter) is ever
@@ -106,14 +118,6 @@ def main() -> None:
         f"margin-top:-10px;'>{TAGLINE}</p>",
         unsafe_allow_html=True,
     )
-
-    # When signed in, offer a logout control and show who is signed in.
-    if _auth_configured() and _is_logged_in():
-        user = _user_ns()
-        who = getattr(user, "email", None) or getattr(user, "name", None) or "user"
-        with st.sidebar:
-            st.caption(f"Signed in as {who}")
-            st.button("Log out", on_click=st.logout)
 
     tab_build, tab_convert, tab_pcap, tab_lib = st.tabs(
         ["🔨 Rule Builder", "🔁 Snort 2→3 Converter", "📦 PCAP Synth", "📚 Team Library"]
