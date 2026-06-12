@@ -250,3 +250,16 @@ def test_template_sids_in_custom_range_and_unique():
     sids = [t["sid"] for t in TEMPLATES.values()]
     assert all(s >= 1_000_000 for s in sids)
     assert len(sids) == len(set(sids))
+
+
+# --- lab view fallback regression -----------------------------------------------
+
+
+def test_lab_view_handles_stale_session_state():
+    """A session from an older app version can have rule_text without
+    rule_dict; render_lab must fall back, never crash (regression for the
+    AttributeError seen on Streamlit Cloud after the v1.1.0 redeploy)."""
+    import ui.lab_view as lab
+
+    src_text = open(lab.__file__).read()
+    assert "isinstance(rule_dict, dict)" in src_text

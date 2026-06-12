@@ -84,7 +84,10 @@ def render_lab() -> None:
 
     rule_text = st.session_state.get("current_rule_text")
     rule_dict = st.session_state.get("current_rule_dict")
-    if not rule_text:
+    # A session carried over from an older app version can hold rule_text
+    # without rule_dict. Treat any incomplete pair as "no rule yet" and fall
+    # back, rather than assuming both are present.
+    if not rule_text or not isinstance(rule_dict, dict):
         st.info(
             "No rule built yet in this session — showing the lab's ICMP ping "
             "example. Build a rule in the **Rule Builder** tab and come back; "
