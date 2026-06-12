@@ -1,6 +1,6 @@
 """Phase 1 + 2 UI: the visual Snort 3 rule builder with inline validation.
 
-Extended for the Aston lab work: template presets, per-content positional
+Extended for teaching and lab use: template presets, per-content positional
 sub-options (offset/depth/distance/within), non-payload options (dsize, ttl,
 flags, itype, icode), classtype + reference meta-data, and an "Explain this
 rule" panel that annotates the generated rule line by line.
@@ -498,5 +498,15 @@ def render_builder() -> None:
                 updated_at=now,
                 notes=notes or None,
             )
+            duplicates = repo.search(sid=int(sid))
             saved = repo.save(model)
             st.success(f"Saved to library with id {saved.id}.")
+            if duplicates:
+                st.warning(
+                    f"Heads-up: SID {int(sid)} already exists in the library "
+                    f"({len(duplicates)} other entr"
+                    f"{'y' if len(duplicates) == 1 else 'ies'}). Snort requires "
+                    "unique SIDs in a deployed rules file — bump the SID (or "
+                    "the rev, if this is a new revision of the same rule) "
+                    "before deploying them together."
+                )

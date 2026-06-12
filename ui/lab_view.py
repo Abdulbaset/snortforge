@@ -1,15 +1,15 @@
-"""Lab Helper: bridge a built rule to the Snort lab workflow.
+"""Lab Helper: bridge a built rule to the standard Snort 3 workflow.
 
-Built around the Aston Security Operations and Privacy lab sheet:
-  * Assessment 1 — install Snort on a Linux VM and verify the setup.
-  * Assessment 2 — configure snort.lua, define network variables, point Snort
-    at local.rules, write detection rules, and monitor traffic.
+Covers the loop every Snort deployment and course goes through: install Snort
+on a Linux machine, configure snort.lua (network variables, rule locations),
+write detection rules, validate them with the engine, and test against real or
+replayed traffic.
 
 This view takes the rule last generated in the Rule Builder and produces the
-exact artefacts a student needs on the VM: the local.rules file, the snort.lua
-snippets, the verification/run commands, and a synthetic trigger pcap to replay
-offline. It performs no engine validation itself; the commands it prints are
-what perform the true validation.
+exact artefacts needed on the Snort machine: the local.rules file, the
+snort.lua snippets, the verification/run commands, and a synthetic trigger
+pcap to replay offline. It performs no engine validation itself; the commands
+it prints are what perform the true validation.
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ def render_lab() -> None:
     st.subheader("Lab Helper")
     st.caption(
         "Turns the rule from the **Rule Builder** tab into the files and "
-        "commands you need on the lab VM. The commands below are what perform "
+        "commands you need on the machine running Snort. The commands below are what perform "
         "true Snort-engine validation — SnortForge itself only pre-checks syntax."
     )
 
@@ -89,7 +89,7 @@ def render_lab() -> None:
     # back, rather than assuming both are present.
     if not rule_text or not isinstance(rule_dict, dict):
         st.info(
-            "No rule built yet in this session — showing the lab's ICMP ping "
+            "No rule built yet in this session — showing a classic ICMP ping "
             "example. Build a rule in the **Rule Builder** tab and come back; "
             "this page will switch to your rule automatically."
         )
@@ -120,8 +120,8 @@ def render_lab() -> None:
     # --- Step 2: snort.lua ---------------------------------------------------------
     st.markdown("#### 2 — Point `snort.lua` at your network and rules")
     st.markdown(
-        "In Assessment 2 you define the network parameters and rule locations. "
-        "Open the config and check these two places:"
+        "Snort needs to know what your network looks like and where your rules "
+        "live. Open the config and check these two places:"
     )
     st.code(
         "-- near the top of snort.lua: define what 'home' means\n"
@@ -136,6 +136,12 @@ def render_lab() -> None:
         "    variables = default_variables\n"
         "}",
         language="lua",
+    )
+    st.caption(
+        "Paths note: these commands assume Snort built from source "
+        f"(`{SNORT_CONF}`). If Snort came from a package manager (e.g. "
+        "`apt install snort`), the config usually lives at "
+        "`/etc/snort/snort.lua` — adjust the paths to match your install."
     )
 
     # --- Step 3: validate -------------------------------------------------------------

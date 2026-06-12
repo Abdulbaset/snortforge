@@ -263,3 +263,17 @@ def test_lab_view_handles_stale_session_state():
 
     src_text = open(lab.__file__).read()
     assert "isinstance(rule_dict, dict)" in src_text
+
+
+def test_ui_wording_stays_general():
+    """The app serves any Snort user: UI modules must not mention a specific
+    university or its assessments. (Templates and Lab Helper still match the
+    coursework workflow — by content, not by name.)"""
+    import pathlib
+
+    for path in pathlib.Path("ui").glob("*.py"):
+        text = path.read_text().lower()
+        assert "assessment" not in text, path
+        assert "aston" not in text, path
+    text = pathlib.Path("data/templates.py").read_text().lower()
+    assert "aston" not in text and "assessment" not in text

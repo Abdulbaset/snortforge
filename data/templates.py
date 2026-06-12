@@ -1,8 +1,8 @@
-"""Lab-aligned rule templates for the builder.
+"""Starter rule templates for the builder.
 
-Each template is a full builder state dict. They mirror the tasks in the Aston
-Security Operations and Privacy lab (Assessment 2): detect ICMP pings, detect
-HTTP traffic, plus a few common teaching patterns. Loading a template never
+Each template is a full builder state dict. They cover the classic first rules
+every Snort course and tutorial teaches: detect ICMP pings, detect HTTP
+traffic, plus a few common detection patterns. Loading a template never
 touches the engine; the builder simply pre-fills its widgets from these values.
 
 All SIDs sit in the custom range (>= 1,000,000) so the templates pass the
