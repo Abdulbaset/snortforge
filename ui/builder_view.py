@@ -56,11 +56,30 @@ _EMPTY_ROW = {
 }
 
 
+#: Default widget values, seeded through session state once. Widgets then
+#: declare only their key — never a value — so template loads (which write the
+#: same keys) cannot conflict with widget defaults. This avoids Streamlit's
+#: "created with a default value but also had its value set via the Session
+#: State API" warning.
+_WIDGET_DEFAULTS = {
+    "b_src_ip": "$HOME_NET",
+    "b_src_port": "any",
+    "b_dst_ip": "$EXTERNAL_NET",
+    "b_dst_port": "443",
+    "b_msg": "SnortForge custom rule",
+    "b_pcre": "",
+    "b_rev": 1,
+}
+
+
 def _init_state() -> None:
     if "content_rows" not in st.session_state:
         st.session_state.content_rows = [dict(_EMPTY_ROW)]
     if "next_sid" not in st.session_state:
         st.session_state.next_sid = CUSTOM_SID_MIN + 1
+    for key, default in _WIDGET_DEFAULTS.items():
+        st.session_state.setdefault(key, default)
+    st.session_state.setdefault("b_sid", int(st.session_state.next_sid))
 
 
 def _apply_template(name: str) -> None:
@@ -189,13 +208,13 @@ def render_builder() -> None:
 
     c4, c5, c6, c7 = st.columns(4)
     with c4:
-        src_ip = st.text_input("Source IP", value="$HOME_NET", key="b_src_ip")
+        src_ip = st.text_input("Source IP", key="b_src_ip")
     with c5:
-        src_port = st.text_input("Source port", value="any", key="b_src_port")
+        src_port = st.text_input("Source port", key="b_src_port")
     with c6:
-        dst_ip = st.text_input("Destination IP", value="$EXTERNAL_NET", key="b_dst_ip")
+        dst_ip = st.text_input("Destination IP", key="b_dst_ip")
     with c7:
-        dst_port = st.text_input("Destination port", value="443", key="b_dst_port")
+        dst_port = st.text_input("Destination port", key="b_dst_port")
 
     ip_src_res, ip_dst_res = validate_ip(src_ip), validate_ip(dst_ip)
     port_src_res, port_dst_res = validate_port(src_port), validate_port(dst_port)
@@ -204,7 +223,7 @@ def render_builder() -> None:
     _inline(port_src_res, "Source port")
     _inline(port_dst_res, "Destination port")
 
-    msg = st.text_input("Message (msg)", value="SnortForge custom rule", key="b_msg")
+    msg = st.text_input("Message (msg)", key="b_msg")
 
     # --- Content rows --------------------------------------------------------
     st.markdown("##### Content matches")
@@ -275,7 +294,7 @@ def render_builder() -> None:
 
     # --- PCRE ----------------------------------------------------------------
     st.markdown("##### PCRE (optional)")
-    pcre = st.text_input("PCRE pattern", value="", placeholder="/admin/i", key="b_pcre")
+    pcre = st.text_input("PCRE pattern", placeholder="/admin/i", key="b_pcre")
     pcre_result = validate_pcre(pcre)
     if pcre:
         _inline(pcre_result, "PCRE")
@@ -342,11 +361,9 @@ def render_builder() -> None:
     # --- SID / rev -----------------------------------------------------------
     sc1, sc2 = st.columns(2)
     with sc1:
-        if "b_sid" not in st.session_state:
-            st.session_state["b_sid"] = int(st.session_state.next_sid)
         sid = st.number_input("SID", step=1, format="%d", key="b_sid")
     with sc2:
-        rev = st.number_input("rev", value=1, min_value=1, step=1, format="%d", key="b_rev")
+        rev = st.number_input("rev", min_value=1, step=1, format="%d", key="b_rev")
     sid_result = validate_sid(int(sid))
     _inline(sid_result, "SID")
 
