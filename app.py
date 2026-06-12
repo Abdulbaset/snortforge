@@ -25,6 +25,7 @@ from ui.branding import (
 )
 from ui.builder_view import render_builder
 from ui.converter_view import render_converter
+from ui.lab_view import render_lab
 from ui.library_view import render_library
 from ui.pcap_view import render_pcap
 
@@ -118,8 +119,14 @@ def main() -> None:
         unsafe_allow_html=True,
     )
 
-    tab_build, tab_convert, tab_pcap, tab_lib = st.tabs(
-        ["🔨 Rule Builder", "🔁 Snort 2→3 Converter", "📦 PCAP Synth", "📚 Team Library"]
+    tab_build, tab_convert, tab_pcap, tab_lab, tab_lib = st.tabs(
+        [
+            "🔨 Rule Builder",
+            "🔁 Snort 2→3 Converter",
+            "📦 PCAP Synth",
+            "🎓 Lab Helper",
+            "📚 Team Library",
+        ]
     )
     with tab_build:
         render_builder()
@@ -127,6 +134,8 @@ def main() -> None:
         render_converter()
     with tab_pcap:
         render_pcap()
+    with tab_lab:
+        render_lab()
     with tab_lib:
         render_library()
 

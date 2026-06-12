@@ -98,16 +98,30 @@ def _build_metadata(mitre_tags: List[str]) -> str:
     return "metadata:" + ", ".join(items)
 
 
+#: Per-content positional sub-options, folded into the content's comma form in
+#: this order, e.g. ``content:"GET", offset 0, depth 3, nocase``.
+CONTENT_POSITIONAL = ("offset", "depth", "distance", "within")
+
+#: Non-payload options emitted as their own ``key:value`` lines, in this order.
+NON_PAYLOAD_KEYS = ("dsize", "ttl", "flags", "itype", "icode")
+
+
 def build_options(rule: Dict[str, Any]) -> List[str]:
     """Build the ordered list of option strings (each without trailing ';').
 
-    Order: msg -> [buffer/content pairs] -> pcre -> metadata -> sid -> rev.
+    Order: msg -> flow -> [buffer/content pairs] -> pcre -> non-payload
+    (dsize, ttl, flags, itype, icode) -> reference(s) -> classtype ->
+    metadata -> sid -> rev.
     """
     options: List[str] = []
 
     msg = rule.get("msg")
     if msg:
         options.append(f'msg:"{_escape_content(str(msg))}"')
+
+    flow = rule.get("flow")
+    if flow:
+        options.append(f"flow:{str(flow).strip()}")
 
     active_buffer = None
     for row in rule.get("contents", []) or []:
@@ -121,6 +135,10 @@ def build_options(rule: Dict[str, Any]) -> List[str]:
             active_buffer = buffer
 
         modifiers: List[str] = []
+        for key in CONTENT_POSITIONAL:
+            value = row.get(key)
+            if value is not None and str(value) != "":
+                modifiers.append(f"{key} {int(value)}")
         if row.get("nocase"):
             modifiers.append("nocase")
         if row.get("fast_pattern"):
@@ -134,6 +152,20 @@ def build_options(rule: Dict[str, Any]) -> List[str]:
     pcre = rule.get("pcre")
     if pcre:
         options.append(f'pcre:"{_normalise_pcre(str(pcre))}"')
+
+    for key in NON_PAYLOAD_KEYS:
+        value = rule.get(key)
+        if value is not None and str(value).strip() != "":
+            options.append(f"{key}:{str(value).strip()}")
+
+    for ref in rule.get("references") or []:
+        ref = str(ref).strip()
+        if ref:
+            options.append(f"reference:{ref}")
+
+    classtype = rule.get("classtype")
+    if classtype:
+        options.append(f"classtype:{str(classtype).strip()}")
 
     mitre_tags = rule.get("mitre") or []
     if mitre_tags:

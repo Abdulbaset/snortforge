@@ -14,6 +14,7 @@ This module provides:
 from __future__ import annotations
 
 import ipaddress
+import re
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -216,6 +217,146 @@ def validate_pcre(pattern: str) -> CheckResult:
         return CheckResult(False, f"Regex compile error: {exc}")
 
 
+#: Snort classtypes commonly used in teaching material and the default
+#: classification.config. Unknown values warn (custom classtypes are legal if
+#: declared in the config) but do not block.
+KNOWN_CLASSTYPES = [
+    "attempted-admin",
+    "attempted-dos",
+    "attempted-recon",
+    "attempted-user",
+    "bad-unknown",
+    "denial-of-service",
+    "misc-activity",
+    "misc-attack",
+    "network-scan",
+    "policy-violation",
+    "protocol-command-decode",
+    "successful-recon-limited",
+    "suspicious-login",
+    "trojan-activity",
+    "web-application-activity",
+    "web-application-attack",
+]
+
+#: Reference systems Snort ships with in reference.config.
+KNOWN_REF_SYSTEMS = {"bugtraq", "cve", "nessus", "arachnids", "mcafee", "osvdb", "msb", "url"}
+
+_RELATIONAL = re.compile(r"^(?:<=|>=|<|>|=)?\s*\d+$")
+_RANGE = re.compile(r"^\d+\s*(?:<>|-)\s*\d+$")
+
+
+def _validate_numeric_test(value: str, label: str, max_value: int) -> CheckResult:
+    """Shared check for relational/range numeric options (dsize, ttl, itype...).
+
+    Accepts ``N``, ``>N``, ``<N``, ``>=N``, ``<=N``, ``=N``, ``N<>M`` and
+    ``N-M``. Bounds-checks every number against ``max_value``.
+    """
+    v = (value or "").strip()
+    if v == "":
+        return CheckResult(True)  # optional field
+    numbers = re.findall(r"\d+", v)
+    if not numbers or not (_RELATIONAL.match(v) or _RANGE.match(v)):
+        return CheckResult(
+            False,
+            f"'{v}' is not a valid {label} test. Use forms like 100, >100, "
+            f"<5, or 300<>400.",
+        )
+    for n in numbers:
+        if int(n) > max_value:
+            return CheckResult(
+                False, f"{label} value {n} is out of range (0-{max_value})."
+            )
+    if _RANGE.match(v):
+        low, high = (int(n) for n in numbers)
+        if low > high:
+            return CheckResult(False, f"Inverted {label} range: {low} > {high}.")
+    return CheckResult(True)
+
+
+def validate_dsize(value: str) -> CheckResult:
+    """Validate a ``dsize`` payload-size test (0-65535)."""
+    return _validate_numeric_test(value, "dsize", 65535)
+
+
+def validate_ttl(value: str) -> CheckResult:
+    """Validate a ``ttl`` test (0-255)."""
+    return _validate_numeric_test(value, "ttl", 255)
+
+
+def validate_icmp_field(value: str, label: str = "itype") -> CheckResult:
+    """Validate an ICMP ``itype`` / ``icode`` test (0-255)."""
+    return _validate_numeric_test(value, label, 255)
+
+
+_FLAG_CHARS = set("FSRPAUCE0")
+_FLAG_MODS = set("+*!")
+
+
+def validate_flags(value: str) -> CheckResult:
+    """Validate a TCP ``flags`` test.
+
+    Accepts flag letters F S R P A U C E 0, an optional leading modifier
+    (+ match-plus-any, * match-any, ! match-not), and an optional mask part
+    after a comma, e.g. ``S``, ``+SA``, ``!R``, ``S,12``.
+    """
+    v = (value or "").strip().upper()
+    if v == "":
+        return CheckResult(True)  # optional field
+    test, _, _mask = v.partition(",")
+    test = test.strip()
+    if test and test[0] in _FLAG_MODS:
+        test = test[1:]
+    if test == "" or any(c not in _FLAG_CHARS for c in test):
+        return CheckResult(
+            False,
+            f"'{value}' is not a valid flags test. Use letters F,S,R,P,A,U,C,E,0 "
+            "with an optional leading +, * or ! (e.g. S, +SA, !R).",
+        )
+    return CheckResult(True)
+
+
+def validate_classtype(value: str) -> CheckResult:
+    """Validate a ``classtype``; unknown names warn rather than block."""
+    v = (value or "").strip()
+    if v == "":
+        return CheckResult(True)  # optional field
+    if not re.match(r"^[a-z0-9-]+$", v):
+        return CheckResult(
+            False, f"'{v}' is not a valid classtype (lowercase letters, digits, hyphens)."
+        )
+    if v not in KNOWN_CLASSTYPES:
+        return CheckResult(
+            True,
+            f"'{v}' is not a standard classtype; ensure it is declared in your "
+            "classification.config.",
+            is_warning=True,
+        )
+    return CheckResult(True)
+
+
+def validate_reference(value: str) -> CheckResult:
+    """Validate a ``reference`` in ``system,id`` form, e.g. ``cve,2021-44228``."""
+    v = (value or "").strip()
+    if v == "":
+        return CheckResult(True)  # optional field
+    system, sep, ident = v.partition(",")
+    if not sep or not ident.strip():
+        return CheckResult(
+            False,
+            f"'{v}' must be in the form system,id (e.g. cve,2021-44228 or "
+            "url,example.com/advisory).",
+        )
+    if system.strip().lower() not in KNOWN_REF_SYSTEMS:
+        return CheckResult(
+            True,
+            f"'{system.strip()}' is not a standard reference system "
+            f"({', '.join(sorted(KNOWN_REF_SYSTEMS))}).",
+            is_warning=True,
+        )
+    return CheckResult(True)
+
+
 # --- MITRE --------------------------------------------------------------------
 
 
@@ -239,6 +380,10 @@ class ContentRow(BaseModel):
     nocase: bool = False
     fast_pattern: bool = False
     buffer: Optional[str] = None
+    offset: Optional[int] = Field(default=None, ge=0, le=65535)
+    depth: Optional[int] = Field(default=None, ge=1, le=65535)
+    distance: Optional[int] = Field(default=None, ge=0, le=65535)
+    within: Optional[int] = Field(default=None, ge=1, le=65535)
 
 
 class SnortRule(BaseModel):
@@ -260,9 +405,71 @@ class SnortRule(BaseModel):
     msg: Optional[str] = None
     contents: List[ContentRow] = Field(default_factory=list)
     pcre: Optional[str] = None
+    flow: Optional[str] = None
+    dsize: Optional[str] = None
+    ttl: Optional[str] = None
+    flags: Optional[str] = None
+    itype: Optional[str] = None
+    icode: Optional[str] = None
+    references: List[str] = Field(default_factory=list)
+    classtype: Optional[str] = None
     mitre: List[str] = Field(default_factory=list)
     sid: int
     rev: int = 1
+
+    @field_validator("dsize")
+    @classmethod
+    def _check_dsize(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            result = validate_dsize(v)
+            if not result.ok:
+                raise ValueError(result.message)
+        return v
+
+    @field_validator("ttl")
+    @classmethod
+    def _check_ttl(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            result = validate_ttl(v)
+            if not result.ok:
+                raise ValueError(result.message)
+        return v
+
+    @field_validator("flags")
+    @classmethod
+    def _check_flags(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            result = validate_flags(v)
+            if not result.ok:
+                raise ValueError(result.message)
+        return v
+
+    @field_validator("itype", "icode")
+    @classmethod
+    def _check_icmp_fields(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            result = validate_icmp_field(v)
+            if not result.ok:
+                raise ValueError(result.message)
+        return v
+
+    @field_validator("references")
+    @classmethod
+    def _check_references(cls, v: List[str]) -> List[str]:
+        for ref in v:
+            result = validate_reference(ref)
+            if not result.ok:
+                raise ValueError(result.message)
+        return v
+
+    @field_validator("classtype")
+    @classmethod
+    def _check_classtype(cls, v: Optional[str]) -> Optional[str]:
+        if v:
+            result = validate_classtype(v)
+            if not result.ok:
+                raise ValueError(result.message)
+        return v
 
     @field_validator("direction")
     @classmethod

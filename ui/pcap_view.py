@@ -27,7 +27,20 @@ def render_pcap() -> None:
         "confirm the crafted packet and payload bytes. No live traffic is sent."
     )
 
-    proto = st.selectbox("Protocol", ["tcp", "udp"], index=0)
+    proto = st.selectbox("Protocol", ["tcp", "udp", "icmp"], index=0)
+    icmp_type, icmp_code = 8, 0
+    if proto == "icmp":
+        ic1, ic2 = st.columns(2)
+        with ic1:
+            icmp_type = st.number_input(
+                "ICMP type", value=8, min_value=0, max_value=255, step=1,
+                help="8 = echo request (ping), 0 = echo reply",
+            )
+        with ic2:
+            icmp_code = st.number_input(
+                "ICMP code", value=0, min_value=0, max_value=255, step=1
+            )
+        st.caption("Ports are ignored for ICMP packets.")
 
     r1c1, r1c2 = st.columns(2)
     with r1c1:
@@ -51,7 +64,8 @@ def render_pcap() -> None:
     if st.button("Generate .pcap", type="primary"):
         try:
             data = generate_mock_pcap(
-                proto, src_ip, dst_ip, src_port, dst_port, payload, is_hex=is_hex
+                proto, src_ip, dst_ip, src_port, dst_port, payload,
+                is_hex=is_hex, icmp_type=int(icmp_type), icmp_code=int(icmp_code),
             )
         except ValueError as exc:
             st.session_state.pop("pcap_data", None)

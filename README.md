@@ -33,7 +33,10 @@ SnortForge never claims engine-level validation it does not perform.
 ## Features
 
 - **Rule Builder** — visual Snort 3 header + content builder. Repeatable content
-  rows with per-row `nocase` / `fast_pattern` and sticky-buffer selectors. The
+  rows with per-row `nocase` / `fast_pattern`, positional sub-options
+  (`offset`, `depth`, `distance`, `within`) and sticky-buffer selectors.
+  Advanced options cover `flow`, `dsize`, `ttl`, `flags`, `itype`/`icode`,
+  `classtype` and `reference`. The
   engine emits each sticky buffer on its own line *before* the content it applies
   to, and only when the active buffer changes (no duplicate buffer lines).
 - **Validation & guardrails** — Pydantic v2 models plus inline field errors for
@@ -43,8 +46,15 @@ SnortForge never claims engine-level validation it does not perform.
   folded into the rule `metadata:` block. (T1043 is deprecated and not seeded.)
 - **Snort 2 → Snort 3 converter** — ordered grouping of content + modifiers with
   correct sticky-buffer placement; returns a clean error string on bad input.
-- **PCAP synthesis** — Scapy-crafted single packet (UTF-8 or hex payload),
-  downloadable as `.pcap` for Wireshark inspection.
+- **PCAP synthesis** — Scapy-crafted single packet (TCP, UDP or ICMP echo,
+  UTF-8 or hex payload), downloadable as `.pcap` for Wireshark inspection.
+- **Lab Helper** — turns the built rule into the full lab workflow: a
+  `local.rules` download, the `snort.lua` HOME_NET/ips snippets, the
+  `snort -T` validation command, a synthetic trigger pcap with its replay
+  command, and the live IDS-mode run command with matching traffic generators.
+- **Templates & Explain mode** — lab-aligned starter rules (ICMP ping, HTTP
+  GET to /admin, SSH attempt, DNS query, oversized payload) and a line-by-line
+  rule explainer grouped by the option categories taught in the module.
 - **Team library** — save/search/load rules. SQLite by default, PostgreSQL in
   production via one connection-string change.
 - **Light / dark theme** — a sidebar toggle switches the whole UI; **light is the
@@ -55,8 +65,8 @@ SnortForge never claims engine-level validation it does not perform.
 
 ## How to use
 
-The app opens on four tabs: **Rule Builder**, **Snort 2 → 3 Converter**,
-**PCAP Synth**, and **Team Library**.
+The app opens on five tabs: **Rule Builder**, **Snort 2 → 3 Converter**,
+**PCAP Synth**, **Lab Helper**, and **Team Library**.
 
 Use the **⚙ Display** control in the left sidebar to switch between light and
 dark mode (the app opens in light mode by default).

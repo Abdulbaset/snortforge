@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 import tempfile
 
-from scapy.all import IP, TCP, UDP, Ether, wrpcap
+from scapy.all import ICMP, IP, TCP, UDP, Ether, wrpcap
 
 # Sane defaults substituted for variables ($...) and "any" so a craftable
 # packet always results (matching the draft's choices).
@@ -51,11 +51,13 @@ def generate_mock_pcap(
     dst_port,
     payload,
     is_hex: bool = False,
+    icmp_type: int = 8,
+    icmp_code: int = 0,
 ) -> bytes:
     """Build one packet and return it as pcap bytes.
 
     Args:
-        proto: "tcp" or "udp" (case-insensitive); anything non-udp -> TCP.
+        proto: "tcp", "udp" or "icmp" (case-insensitive); anything else -> TCP.
         src_ip, dst_ip: IPs; variables/"any" fall back to sane defaults.
         src_port, dst_port: ports; variables/"any"/lists fall back / first.
         payload: payload string. UTF-8 by default, or hex bytes if is_hex.
@@ -73,7 +75,12 @@ def generate_mock_pcap(
     d_port = _resolve_port(dst_port, DEFAULT_DST_PORT)
 
     pkt = Ether() / IP(src=s_ip, dst=d_ip)
-    if str(proto).lower() == "udp":
+    p = str(proto).lower()
+    if p == "icmp":
+        # Echo request (type 8, code 0) — the packet every "detect ping" lab
+        # rule expects. Ports do not apply to ICMP and are ignored.
+        pkt = pkt / ICMP(type=icmp_type, code=icmp_code)
+    elif p == "udp":
         pkt = pkt / UDP(sport=s_port, dport=d_port)
     else:
         pkt = pkt / TCP(sport=s_port, dport=d_port, flags="PA")
